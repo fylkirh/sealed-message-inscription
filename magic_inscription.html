@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serialization and XOR Hash</title>
+    <script>
+        // Helper function to convert hex string to byte array
+        function hexToBytes(hex) {
+            let bytes = [];
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes.push(parseInt(hex.substr(i, 2), 16));
+            }
+            return new Uint8Array(bytes);
+        }
+
+        // XOR two byte arrays
+        function xorBytes(a, b) {
+            let length = Math.min(a.length, b.length);
+            let result = new Uint8Array(length);
+            for (let i = 0; i < length; i++) {
+                result[i] = a[i] ^ b[i];
+            }
+            return result;
+        }
+
+        // Convert byte array to a string
+        function bytesToString(bytes) {
+            return String.fromCharCode(...bytes);
+        }
+
+        // Hash the input using SHA-256
+        async function hashMessage(message) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return new Uint8Array(hashBuffer); // Return byte array of the hash
+        }
+
+        function toHexString(byteArray) {
+            return Array.from(byteArray, byte => ('0' + byte.toString(16)).slice(-2)).join('');
+        }
+
+        // Handle submit action
+        async function handleSubmit() {
+            // Get input values from textboxes
+            let inputs = [];
+            for (let i = 1; i <= 7; i++) {
+                let input = document.getElementById('input' + i).value;
+                inputs.push(input);
+            }
+
+            // Serialize input (join all inputs with a delimiter, e.g., comma)
+            let serialized = inputs.join('|');
+
+            // Hash the serialized input using SHA-256
+            let hashBytes = await hashMessage(serialized);
+            console.log(toHexString(hashBytes));
+
+            // XOR the hash with a constant byte buffer derived from a hex string
+            let xorKey = hexToBytes('20669046e8bf887b699b8dfcda5adf558c98e3f57ee9e03c6972'); // Example XOR key
+            console.log(toHexString(xorKey));
+            let xorResult = xorBytes(hashBytes, xorKey);
+            console.log(toHexString(xorResult));
+            // Convert XOR result back to a string
+            let resultString = bytesToString(xorResult);
+
+            // Display the result
+            document.getElementById('output').innerText = 'Result: ' + resultString;
+        }
+    </script>
+</head>
+<body>
+    <h1>Serialize, Hash, XOR, and Display</h1>
+    
+    <!-- Seven textboxes -->
+    <input type="text" id="input1" placeholder="Input 1"><br>
+    <input type="text" id="input2" placeholder="Input 2"><br>
+    <input type="text" id="input3" placeholder="Input 3"><br>
+    <input type="text" id="input4" placeholder="Input 4"><br>
+    <input type="text" id="input5" placeholder="Input 5"><br>
+    <input type="text" id="input6" placeholder="Input 6"><br>
+    <input type="text" id="input7" placeholder="Input 7"><br>
+    
+    <!-- Submit button -->
+    <button onclick="handleSubmit()">Submit</button>
+
+    <!-- Output area -->
+    <p id="output"></p>
+</body>
+</html>
